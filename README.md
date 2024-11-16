@@ -65,4 +65,5 @@ pyinstaller --onefile client.py --add-data "network_policy.csv:."
 pyinstaller --onefile -w client.py --add-data "network_policy.csv:." --name client_x86.exe --distpath dist/x86
 ```
 [Docker with PyInstaller for Windows](https://hub.docker.com/r/cdrx/pyinstaller-windows)
+`docker run -v "$(pwd):/src/" --rm -it --entrypoint /bin/bash cdrx/pyinstaller-windows:python3 -c "python -m pip install --upgrade pip && /entrypoint.sh"`
 
