@@ -44,7 +44,7 @@ src_ip,src_fqdn,src_port,protocol,dst_ip,dst_fqdn,dst_port,description
 # Wymagania
 
 Python 3.6+
-Biblioteki: socket, tkinter, csv, psutil
+Biblioteki: psutil
 
 
 # Uruchomienie
@@ -55,4 +55,4 @@ Do stworzenia plików wykonywalnych można użyć PyInstaller:
 
     `pyinstaller --onefile server.py`
     `pyinstaller --onefile client.py`
-    
+    python

@@ -1,4 +1,1 @@
-socket
-tkinter
-csv
 psutil
