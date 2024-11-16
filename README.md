@@ -50,9 +50,17 @@ Biblioteki: psutil
 # Uruchomienie
 
 `pip install --upgrade pip`
+`pip install -U pyinstaller`
+
 
 Do stworzenia plików wykonywalnych można użyć PyInstaller:
 
     `pyinstaller --onefile server.py`
-    `pyinstaller --onefile client.py`
-    python
+    `pyinstaller --onefile client.py --add-data "network_policy.csv;."`
+
+```
+# Tworzenie dla Linux/MacOS
+pyinstaller --onefile client.py --add-data "network_policy.csv:."
+# Tworzenie dla Windows x86
+pyinstaller --onefile -w client.py --add-data "network_policy.csv:." --name client_x86.exe --distpath dist/x86
+```

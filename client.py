@@ -5,13 +5,27 @@ import psutil
 import subprocess
 import platform
 import argparse
+import sys
+
+def get_resource_path(relative_path):
+    """
+    Pobiera absolutną ścieżkę do zasobu, działając zarówno w trybie deweloperskim
+    jak i w skompilowanej aplikacji PyInstallera
+    """
+    try:
+        # PyInstaller tworzy folder tymczasowy i przechowuje ścieżkę w _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        # Jeśli nie jesteśmy w PyInstallerze, używamy bieżącego katalogu
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 def setup_argument_parser():
-    """
-    Konfiguracja parsera argumentów wiersza poleceń
-    """
     parser = argparse.ArgumentParser(description='Network connection tester')
     parser.add_argument('--debug', action='store_true', help='Włącz tryb debugowania')
+    parser.add_argument('--config', type=str, help='Ścieżka do pliku konfiguracyjnego CSV', 
+                       default='network_policy.csv')
     return parser
 
 
@@ -90,12 +104,27 @@ def verify_dns_resolution(entry):
     return True, None
 
 def load_client_data(csv_file):
-    client_data = []
-    with open(csv_file, mode="r") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            client_data.append(row)
-    return client_data
+    """
+    Wczytuje dane klienta z pliku CSV, obsługując zarówno ścieżkę względną jak i absolutną
+    """
+    try:
+        # Najpierw próbujemy użyć podanej ścieżki bezpośrednio
+        with open(csv_file, mode="r") as file:
+            reader = csv.DictReader(file)
+            return list(reader)
+    except FileNotFoundError:
+        try:
+            # Jeśli nie znaleziono, próbujemy użyć ścieżki względnej do zasobów
+            resource_path = get_resource_path(csv_file)
+            with open(resource_path, mode="r") as file:
+                reader = csv.DictReader(file)
+                return list(reader)
+        except FileNotFoundError:
+            print(f"[ERROR] Nie można znaleźć pliku konfiguracyjnego: {csv_file}")
+            print("[ERROR] Sprawdzono ścieżki:")
+            print(f"        - {os.path.abspath(csv_file)}")
+            print(f"        - {os.path.abspath(resource_path)}")
+            sys.exit(1)
 
 def should_test_connection(entry, local_ips, local_fqdn):
     """
@@ -216,21 +245,33 @@ def show_results(results, stats, debug=False):
                   f"[src_ip: {entry['src_ip']}, src_fqdn: {entry['src_fqdn']}]")
 
 if __name__ == "__main__":
-    # Parsowanie argumentów wiersza poleceń
-    parser = setup_argument_parser()
-    args = parser.parse_args()
+    try:
+        # Parsowanie argumentów wiersza poleceń
+        parser = setup_argument_parser()
+        args = parser.parse_args()
 
-    # Pobieranie informacji o hoście lokalnym
-    local_fqdn = get_fqdn()
-    local_ips = get_all_local_ips()
+        # Pobieranie informacji o hoście lokalnym
+        local_fqdn = get_fqdn()
+        local_ips = get_all_local_ips()
 
-    # Wyświetlanie informacji o hoście
-    print("[INFO] Uruchamiany program na hoście:")
-    print(f"       FQDN: {local_fqdn}")
-    print(f"       IP: {', '.join(local_ips)}")
+        # Wyświetlanie informacji o hoście
+        print("[INFO] Uruchamiany program na hoście:")
+        print(f"       FQDN: {local_fqdn}")
+        print(f"       IP: {', '.join(local_ips)}")
 
-    # Wczytywanie danych i testowanie połączeń
-    print("[INFO] Wczytywanie danych klienta...")
-    client_data = load_client_data("network_policy.csv")
-    results, stats = test_connections(client_data, local_ips, local_fqdn)
-    show_results(results, stats, args.debug)
+        # Wczytywanie danych i testowanie połączeń
+        print("[INFO] Wczytywanie danych klienta...")
+        client_data = load_client_data(args.config)
+        results, stats = test_connections(client_data, local_ips, local_fqdn)
+        show_results(results, stats, args.debug)
+
+    except KeyboardInterrupt:
+        print("\n[INFO] Program zakończony przez użytkownika")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[ERROR] Wystąpił nieoczekiwany błąd: {str(e)}")
+        if args.debug:
+            import traceback
+            print("\nSzczegóły błędu:")
+            print(traceback.format_exc())
+        sys.exit(1)
