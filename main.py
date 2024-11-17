@@ -147,6 +147,7 @@ For support contact your system administrator.
 
 @app.post("/upload/")
 async def upload_policy(
+    request: Request,
     client_name: str = Form(...),
     file: UploadFile = File(...)
 ):
@@ -192,8 +193,15 @@ async def upload_policy(
         # Usuń tymczasowy plik exe
         os.remove(output_exe_path)
         
-        # Zwróć URL do pobrania pliku
-        return {"download_url": f"/files/{zip_filename}"}
+        # Zwróć stronę z linkiem do pobrania
+        return templates.TemplateResponse(
+            "upload.html",
+            {
+                "request": request,
+                "download_link": f"/download/{zip_filename}",
+                "filename": zip_filename
+            }
+        )
 
     except Exception as e:
         logger.error(f"Błąd podczas przetwarzania: {str(e)}", exc_info=True)
@@ -203,3 +211,15 @@ async def upload_policy(
         # Czyszczenie plików tymczasowych
         if os.path.exists('temp'):
             shutil.rmtree('temp')
+
+@app.get(f"/download/{filename}")
+async def download_file(filename: str):
+    """Endpoint do pobierania wygenerowanego pliku"""
+    file_path = os.path.join("output", filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Plik nie został znaleziony")
+    return FileResponse(
+        file_path,
+        media_type='application/zip',
+        filename=filename
+    )
