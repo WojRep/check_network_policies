@@ -19,10 +19,10 @@ COPY client.py .
 COPY requirements.txt .
 
 # Instalacja zależności
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-web.txt
 
 # Port na którym działa aplikacja
 EXPOSE 8945
 
 # Uruchomienie aplikacji
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8945"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8945"]
