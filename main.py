@@ -212,6 +212,7 @@ async def upload_policy(
         if os.path.exists('temp'):
             shutil.rmtree('temp')
 
+# Poprawiony endpoint do pobierania
 @app.get(f"/download/{filename}")
 async def download_file(filename: str):
     """Endpoint do pobierania wygenerowanego pliku"""
