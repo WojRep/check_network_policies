@@ -121,10 +121,27 @@ async def upload_policy(
         df = pd.read_csv(csv_data)
 
         # Zapisanie pliku CSV
-        os.makedirs('temp', exist_ok=True)
-        csv_path = os.path.join('temp', 'network_policy.csv')
+        csv_path = os.path.join('/src', 'network_policy.csv')
         df.to_csv(csv_path, index=False)
 
+        # Sprawdzenie czy plik został prawidłowo zapisany
+        if not os.path.exists(csv_path):
+            raise HTTPException(
+                status_code=500,
+                detail="Nie udało się zapisać pliku network_policy.csv"
+            )
+            
+        # Weryfikacja zawartości zapisanego pliku
+        try:
+            pd.read_csv(csv_path)
+            logger.info(f"Plik CSV został pomyślnie zapisany jako: {csv_path}")
+        except Exception as e:
+            logger.error(f"Błąd podczas weryfikacji zapisanego pliku CSV: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Zapisany plik CSV jest uszkodzony lub nieprawidłowy"
+            )
+            
         # Sanityzacja nazwy klienta
         safe_client_name = sanitize_client_name(client_name)
 
