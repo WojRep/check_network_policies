@@ -6,8 +6,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN docker pull cdrx/pyinstaller-windows:python3 && \
-docker pull cdrx/pyinstaller-linux:python3
+RUN docker pull cdrx/pyinstaller-windows:python3
+RUN docker pull cdrx/pyinstaller-linux:python3
 
 # Ustawienie katalogu roboczego
 WORKDIR /app
