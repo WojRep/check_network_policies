@@ -15,6 +15,7 @@ import zipfile
 from datetime import datetime
 
 # Ustawienie ścieżki bazowej
+
 BASE_DIR = Path(__file__).resolve().parent
 
 # Konfiguracja logging
@@ -30,8 +31,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Konfiguracja szablonów z absolutną ścieżką
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+# Konfiguracja szablonów - uproszczona ścieżka
+templates = Jinja2Templates(directory="templates")
 
 # Dodanie CORS middleware
 app.add_middleware(
