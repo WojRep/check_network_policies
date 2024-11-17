@@ -15,7 +15,7 @@ COPY main.py .
 COPY templates/ templates/
 
 COPY client_x86.spec .
-COPY client.py
+COPY client.py .
 COPY requirements.txt .
 
 # Instalacja zależności
