@@ -7,7 +7,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Ustawienie katalogu roboczego
-WORKDIR /app
+WORKDIR /src
 
 # Kopiowanie plików projektu
 COPY requirements-web.txt .

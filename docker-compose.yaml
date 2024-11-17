@@ -2,13 +2,14 @@ version: '3.8'
 
 services:
   check_network_policies:
+    container_name: network_policies_container
     build: 
       context: .
       dockerfile: Dockerfile
     ports:
       - "8945:8945"
     volumes:
-      - .:/app:rshared
+      - .:/src:rshared
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PYTHONUNBUFFERED=1
