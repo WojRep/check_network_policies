@@ -93,7 +93,47 @@
                 </div>
             </div>
             {% endif %}
-
+            <div class="csv-example">
+                <h4>Przykładowe dane:</h4>
+                <div class="table-container">
+                    <table class="csv-table">
+                        <thead>
+                            <tr>
+                                <th>src_ip</th>
+                                <th>src_fqdn</th>
+                                <th>src_port</th>
+                                <th>protocol</th>
+                                <th>dst_ip</th>
+                                <th>dst_fqdn</th>
+                                <th>dst_port</th>
+                                <th>description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>192.168.1.10</td>
+                                <td>server1.local</td>
+                                <td>*</td>
+                                <td>TCP</td>
+                                <td>192.168.2.20</td>
+                                <td>db.local</td>
+                                <td>3306</td>
+                                <td>Dostęp do bazy danych</td>
+                            </tr>
+                            <tr>
+                                <td>10.0.0.15</td>
+                                <td>app.company.com</td>
+                                <td>80,443</td>
+                                <td>TCP</td>
+                                <td>10.0.1.25</td>
+                                <td>api.company.com</td>
+                                <td>8080</td>
+                                <td>Komunikacja API</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             <div class="mt-8 p-4 bg-gray-50 rounded-md">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Wymagana struktura pliku CSV:</h3>
                 <ul class="space-y-2 text-sm text-gray-600">
