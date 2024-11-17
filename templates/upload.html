@@ -1,69 +1,145 @@
-::::::::::::::::: container
-# Generator polityk sieciowych
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generator polityk sieciowych</title>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .error {
+            color: red;
+            margin: 10px 0;
+        }
+        .progress-container {
+            margin: 20px 0;
+        }
+        .progress-bar {
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            padding: 2px;
+        }
+        .progress-fill {
+            background-color: #4CAF50;
+            height: 20px;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease-in-out;
+        }
+        .progress-info {
+            margin-bottom: 5px;
+        }
+        .time-elapsed {
+            float: right;
+        }
+        .progress-message {
+            margin-top: 5px;
+        }
+        .status-steps {
+            margin: 20px 0;
+        }
+        .status-step {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .pending {
+            background-color: #f0f0f0;
+        }
+        .active {
+            background-color: #fff3cd;
+        }
+        .completed {
+            background-color: #d4edda;
+        }
+        .requirements {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .download-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #d4edda;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generator polityk sieciowych</h1>
 
-::: form-group
-Nazwa klienta:
-:::
+        <form method="post" action="/upload/" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="client_name">Nazwa klienta:</label>
+                <input type="text" id="client_name" name="client_name" required>
+            </div>
 
-::: form-group
-Plik CSV z politykami:
-:::
+            <div class="form-group">
+                <label for="file">Plik CSV z politykami:</label>
+                <input type="file" id="file" name="file" accept=".csv" required>
+            </div>
 
-Generuj program
+            <button type="submit">Generuj program</button>
+        </form>
 
-::: {#error .error}
-:::
+        <div id="error" class="error"></div>
 
-:::::::::::: {#progressContainer .progress-container}
-::: progress-info
-[0%]{#progressPercentage} [Czas: 0s]{#timeElapsed .time-elapsed}
-:::
+        <div id="progressContainer" class="progress-container" style="display: none;">
+            <div class="progress-info">
+                <span id="progressPercentage">0%</span>
+                <span id="timeElapsed" class="time-elapsed">Czas: 0s</span>
+            </div>
 
-:::: progress-bar
-::: {#progressFill .progress-fill}
-:::
-::::
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
 
-::: {#progressMessage .progress-message}
-Przygotowywanie\...
-:::
+            <div id="progressMessage" class="progress-message">
+                Przygotowywanie...
+            </div>
 
-::::::: status-steps
-::: {#step1 .status-step .pending}
-1\. Walidacja pliku CSV
-:::
+            <div class="status-steps">
+                <div id="step1" class="status-step pending">
+                    1. Walidacja pliku CSV
+                </div>
+                <div id="step2" class="status-step pending">
+                    2. Przygotowanie środowiska
+                </div>
+                <div id="step3" class="status-step pending">
+                    3. Generowanie programu
+                </div>
+                <div id="step4" class="status-step pending">
+                    4. Finalizacja
+                </div>
+            </div>
+        </div>
 
-::: {#step2 .status-step .pending}
-2\. Przygotowanie środowiska
-:::
+        {% if download_link %}
+        <div class="download-section">
+            <h3>Plik został wygenerowany</h3>
+            <a href="{{ download_link }}">Pobierz {{ filename }}</a>
+        </div>
+        {% endif %}
 
-::: {#step3 .status-step .pending}
-3\. Generowanie programu
-:::
-
-::: {#step4 .status-step .pending}
-4\. Finalizacja
-:::
-:::::::
-::::::::::::
-
-{% if download_link %}
-::: download-section
-### Plik został wygenerowany
-[Pobierz {{ filename }}]({{ download_link }})
-:::
-{% endif %}
-
-::: requirements
-### Wymagana struktura pliku CSV:
-
--   src_ip: Adres IP źródła
--   src_fqdn: Pełna nazwa domenowa źródła
--   src_port: Port źródłowy (lub zakres portów)
--   protocol: Protokół transmisji (TCP/UDP/ICMP)
--   dst_ip: Adres IP celu
--   dst_fqdn: Pełna nazwa domenowa celu
--   dst_port: Port docelowy
--   description: Opis połączenia
-:::
-:::::::::::::::::
+        <div class="requirements">
+            <h3>Wymagana struktura pliku CSV:</h3>
+            <ul>
+                <li>src_ip: Adres IP źródła</li>
+                <li>src_fqdn: Pełna nazwa domenowa źródła</li>
+                <li>src_port: Port źródłowy (lub zakres portów)</li>
+                <li>protocol: Protokół transmisji (TCP/UDP/ICMP)</li>
+                <li>dst_ip: Adres IP celu</li>
+                <li>dst_fqdn: Pełna nazwa domenowa celu</li>
+                <li>dst_port: Port docelowy</li>
+                <li>description: Opis połączenia</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
