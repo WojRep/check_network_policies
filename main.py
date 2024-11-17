@@ -13,7 +13,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 import zipfile
 from datetime import datetime
-import uvicorn  # Dodane
 
 # Ustawienie ścieżki bazowej
 BASE_DIR = Path(__file__).resolve().parent
@@ -34,11 +33,7 @@ app = FastAPI()
 # Konfiguracja szablonów z absolutną ścieżką
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
-# Skonfiguruj serwer statyczny do serwowania plików
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/output", StaticFiles(directory="output"), name="output")
-
-# Dodanie CORS middleware z bardziej szczegółową konfiguracją
+# Dodanie CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -55,35 +50,6 @@ def sanitize_client_name(client_name: str) -> str:
     sanitized = sanitized.strip('_')
     logger.debug(f"Nazwa po sanityzacji: {sanitized}")
     return sanitized
-
-
-
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    try:
-        logger.info("Próba wyświetlenia strony głównej")
-        logger.debug(f"Ścieżka do szablonów: {str(BASE_DIR / 'templates')}")
-        response = templates.TemplateResponse(
-            "upload.html",
-            {"request": request}
-        )
-        logger.info("Strona główna wygenerowana pomyślnie")
-        return response
-    except Exception as e:
-        logger.error(f"Błąd podczas renderowania strony głównej: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/download/{file_id}")
-async def download_file(file_id: str):
-    """Endpoint do pobierania wygenerowanego pliku"""
-    file_path = os.path.join("output", file_id)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Plik nie został znaleziony")
-    return FileResponse(
-        file_path,
-        media_type='application/zip',
-        filename=file_id
-    )
 
 def create_zip_file(source_file: str, zip_filename: str, client_name: str, os_type: str) -> str:
     """
@@ -112,6 +78,33 @@ For support contact your system administrator.
         zipf.writestr('README.txt', readme_content)
     
     return zip_path
+
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    try:
+        logger.info("Próba wyświetlenia strony głównej")
+        logger.debug(f"Ścieżka do szablonów: {str(BASE_DIR / 'templates')}")
+        response = templates.TemplateResponse(
+            "upload.html",
+            {"request": request}
+        )
+        logger.info("Strona główna wygenerowana pomyślnie")
+        return response
+    except Exception as e:
+        logger.error(f"Błąd podczas renderowania strony głównej: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get(f"/download/{filename}")
+async def download_file(filename: str):
+    """Endpoint do pobierania wygenerowanego pliku"""
+    file_path = os.path.join("output", filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Plik nie został znaleziony")
+    return FileResponse(
+        file_path,
+        media_type='application/zip',
+        filename=filename
+    )
 
 @app.post("/upload/")
 async def upload_policy(
