@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 import zipfile
 from datetime import datetime
+import uvicorn  # Dodane
 
 # Ustawienie ścieżki bazowej
 BASE_DIR = Path(__file__).resolve().parent
@@ -33,7 +34,11 @@ app = FastAPI()
 # Konfiguracja szablonów z absolutną ścieżką
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
-# Dodanie CORS middleware
+# Skonfiguruj serwer statyczny do serwowania plików
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/output", StaticFiles(directory="output"), name="output")
+
+# Dodanie CORS middleware z bardziej szczegółową konfiguracją
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
