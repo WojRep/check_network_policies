@@ -129,7 +129,7 @@ async def upload_policy(
         safe_client_name = sanitize_client_name(client_name)
 
         # Generowanie dla Windows
-        cmd_windows = 'docker run -v "$(pwd):/src/" --network host --rm -it --entrypoint /bin/bash cdrx/pyinstaller-windows:python3 -c "python -m pip install --upgrade pip && /entrypoint.sh"'
+        cmd_windows = 'docker run -v "$(pwd):/src/" --network host --rm --entrypoint /bin/bash cdrx/pyinstaller-windows:python3 -c "python -m pip install --upgrade pip && /entrypoint.sh"'
         process_windows = subprocess.run(cmd_windows, shell=True, check=True, capture_output=True, text=True)
 
         # Sprawdzenie czy plik exe został wygenerowany
