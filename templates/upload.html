@@ -2,144 +2,167 @@
 <html>
 <head>
     <title>Generator polityk sieciowych</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <style>
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .error {
-            color: red;
-            margin: 10px 0;
-        }
-        .progress-container {
-            margin: 20px 0;
-        }
-        .progress-bar {
-            background-color: #f0f0f0;
-            border-radius: 4px;
-            padding: 2px;
-        }
         .progress-fill {
-            background-color: #4CAF50;
-            height: 20px;
-            border-radius: 4px;
-            width: 0%;
             transition: width 0.3s ease-in-out;
         }
-        .progress-info {
-            margin-bottom: 5px;
-        }
-        .time-elapsed {
-            float: right;
-        }
-        .progress-message {
-            margin-top: 5px;
-        }
-        .status-steps {
-            margin: 20px 0;
-        }
-        .status-step {
-            margin: 5px 0;
-            padding: 5px;
-            border-radius: 4px;
-        }
-        .pending {
-            background-color: #f0f0f0;
-        }
-        .active {
-            background-color: #fff3cd;
-        }
-        .completed {
-            background-color: #d4edda;
-        }
-        .requirements {
-            margin-top: 30px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-        }
-        .download-section {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #d4edda;
-            border-radius: 4px;
+        .hidden {
+            display: none;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Generator polityk sieciowych</h1>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <h1 class="text-2xl font-bold mb-6 text-gray-800">Generator polityk sieciowych</h1>
 
-        <form method="post" action="/upload/" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="client_name">Nazwa klienta:</label>
-                <input type="text" id="client_name" name="client_name" required>
-            </div>
-
-            <div class="form-group">
-                <label for="file">Plik CSV z politykami:</label>
-                <input type="file" id="file" name="file" accept=".csv" required>
-            </div>
-
-            <button type="submit">Generuj program</button>
-        </form>
-
-        <div id="error" class="error"></div>
-
-        <div id="progressContainer" class="progress-container" style="display: none;">
-            <div class="progress-info">
-                <span id="progressPercentage">0%</span>
-                <span id="timeElapsed" class="time-elapsed">Czas: 0s</span>
-            </div>
-
-            <div class="progress-bar">
-                <div id="progressFill" class="progress-fill"></div>
-            </div>
-
-            <div id="progressMessage" class="progress-message">
-                Przygotowywanie...
-            </div>
-
-            <div class="status-steps">
-                <div id="step1" class="status-step pending">
-                    1. Walidacja pliku CSV
+            <form id="uploadForm" method="post" action="/upload/" enctype="multipart/form-data" class="space-y-6">
+                <div class="space-y-2">
+                    <label for="client_name" class="block text-sm font-medium text-gray-700">Nazwa klienta:</label>
+                    <input type="text" id="client_name" name="client_name" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
-                <div id="step2" class="status-step pending">
-                    2. Przygotowanie środowiska
+
+                <div class="space-y-2">
+                    <label for="file" class="block text-sm font-medium text-gray-700">Plik CSV z politykami:</label>
+                    <input type="file" id="file" name="file" accept=".csv" required
+                           class="mt-1 block w-full text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-md file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-indigo-50 file:text-indigo-700
+                                  hover:file:bg-indigo-100">
                 </div>
-                <div id="step3" class="status-step pending">
-                    3. Generowanie programu
+
+                <button type="submit" 
+                        class="w-full bg-indigo-600 text-white rounded-md py-2 px-4 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Generuj program
+                </button>
+            </form>
+
+            <div id="error" class="hidden mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md"></div>
+
+            <div id="progressContainer" class="hidden mt-6 space-y-4">
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span id="progressPercentage">0%</span>
+                    <span id="timeElapsed">Czas: 0s</span>
                 </div>
-                <div id="step4" class="status-step pending">
-                    4. Finalizacja
+
+                <div class="bg-gray-200 rounded-full h-2.5">
+                    <div id="progressFill" class="progress-fill bg-indigo-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+
+                <div id="progressMessage" class="text-sm text-gray-600 text-center">
+                    Przygotowywanie...
+                </div>
+
+                <div class="space-y-2">
+                    <div id="step1" class="p-3 rounded-md bg-gray-50 text-sm">1. Walidacja pliku CSV</div>
+                    <div id="step2" class="p-3 rounded-md bg-gray-50 text-sm">2. Przygotowanie środowiska</div>
+                    <div id="step3" class="p-3 rounded-md bg-gray-50 text-sm">3. Generowanie programu</div>
+                    <div id="step4" class="p-3 rounded-md bg-gray-50 text-sm">4. Finalizacja</div>
                 </div>
             </div>
-        </div>
 
-        {% if download_link %}
-        <div class="download-section">
-            <h3>Plik został wygenerowany</h3>
-            <a href="{{ download_link }}">Pobierz {{ filename }}</a>
-        </div>
-        {% endif %}
+            {% if download_link %}
+            <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-md">
+                <h3 class="text-lg font-medium text-green-800">Plik został wygenerowany</h3>
+                <a href="{{ download_link }}" class="mt-2 inline-block text-indigo-600 hover:text-indigo-800">
+                    Pobierz {{ filename }}
+                </a>
+            </div>
+            {% endif %}
 
-        <div class="requirements">
-            <h3>Wymagana struktura pliku CSV:</h3>
-            <ul>
-                <li>src_ip: Adres IP źródła</li>
-                <li>src_fqdn: Pełna nazwa domenowa źródła</li>
-                <li>src_port: Port źródłowy (lub zakres portów)</li>
-                <li>protocol: Protokół transmisji (TCP/UDP/ICMP)</li>
-                <li>dst_ip: Adres IP celu</li>
-                <li>dst_fqdn: Pełna nazwa domenowa celu</li>
-                <li>dst_port: Port docelowy</li>
-                <li>description: Opis połączenia</li>
-            </ul>
+            <div class="mt-8 p-4 bg-gray-50 rounded-md">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Wymagana struktura pliku CSV:</h3>
+                <ul class="space-y-2 text-sm text-gray-600">
+                    <li>src_ip: Adres IP źródła</li>
+                    <li>src_fqdn: Pełna nazwa domenowa źródła</li>
+                    <li>src_port: Port źródłowy (lub zakres portów)</li>
+                    <li>protocol: Protokół transmisji (TCP/UDP/ICMP)</li>
+                    <li>dst_ip: Adres IP celu</li>
+                    <li>dst_fqdn: Pełna nazwa domenowa celu</li>
+                    <li>dst_port: Port docelowy</li>
+                    <li>description: Opis połączenia</li>
+                </ul>
+            </div>
         </div>
     </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressPercentage = document.getElementById('progressPercentage');
+            const timeElapsed = document.getElementById('timeElapsed');
+            const errorDiv = document.getElementById('error');
+            
+            progressContainer.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+            
+            let startTime = Date.now();
+            let progress = 0;
+            
+            // Symulacja postępu
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += Math.random() * 10;
+                    if (progress > 90) progress = 90;
+                    
+                    progressFill.style.width = progress + '%';
+                    progressPercentage.textContent = Math.round(progress) + '%';
+                    
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                    timeElapsed.textContent = `Czas: ${elapsed}s`;
+                }
+            }, 500);
+            
+            // Aktualizacja statusów
+            const steps = ['step1', 'step2', 'step3', 'step4'];
+            let currentStep = 0;
+            
+            const statusInterval = setInterval(() => {
+                if (currentStep < steps.length) {
+                    const step = document.getElementById(steps[currentStep]);
+                    step.classList.remove('bg-gray-50');
+                    step.classList.add('bg-indigo-50', 'text-indigo-700');
+                    currentStep++;
+                }
+            }, 2000);
+
+            // Wysłanie formularza
+            const formData = new FormData(this);
+            fetch('/upload/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                clearInterval(progressInterval);
+                clearInterval(statusInterval);
+                
+                if (!response.ok) {
+                    throw new Error('Wystąpił błąd podczas przesyłania pliku');
+                }
+                
+                // Pomyślne zakończenie
+                progressFill.style.width = '100%';
+                progressPercentage.textContent = '100%';
+                return response.text();
+            })
+            .then(html => {
+                document.documentElement.innerHTML = html;
+            })
+            .catch(error => {
+                clearInterval(progressInterval);
+                clearInterval(statusInterval);
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+                progressContainer.classList.add('hidden');
+            });
+        });
+    </script>
 </body>
 </html>
