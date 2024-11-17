@@ -156,7 +156,7 @@ async def upload_policy(
         process_linux = subprocess.run(cmd_linux, shell=True, check=True, capture_output=True, text=True)
 
         # Sprawdzenie czy plik dla Linuxa został wygenerowany
-        linux_path = "dist/linux/client"
+        linux_path = "dist/linux/client_x86"
         if not os.path.exists(linux_path):
             raise HTTPException(status_code=500, detail="Nie udało się wygenerować pliku wykonywalnego dla Linux")
 
