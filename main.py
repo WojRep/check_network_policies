@@ -42,6 +42,39 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def sanitize_client_name(client_name: str) -> str:
+    """Oczyszcza nazwę klienta z niedozwolonych znaków."""
+    logger.debug(f"Sanityzacja nazwy klienta: {client_name}")
+    sanitized = re.sub(r'[^\w\s-]', '', client_name)
+    sanitized = sanitized.replace(' ', '_')
+    sanitized = sanitized.strip('_')
+    logger.debug(f"Nazwa po sanityzacji: {sanitized}")
+    return sanitized
+
+def create_zip_file(source_file: str, zip_filename: str, client_name: str) -> str:
+    """Tworzy plik ZIP zawierający plik wykonywalny i dodatkowe informacje"""
+    zip_path = os.path.join("output", zip_filename)
+    
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        # Dodaj plik wykonywalny
+        zipf.write(source_file, os.path.basename(source_file))
+        
+        # Dodaj plik README z informacjami
+        readme_content = """Network Policy Checker
+Generated for: {client_name}
+Generation date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+Instructions:
+1. Extract the executable file
+2. Run the program to check network policies
+3. Review the results
+
+For support contact your system administrator.
+"""
+        zipf.writestr('README.txt', readme_content)
+    
+    return zip_path
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     try:
@@ -57,93 +90,17 @@ async def home(request: Request):
         logger.error(f"Błąd podczas renderowania strony głównej: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/validate-csv/")
-async def validate_csv(file: UploadFile = File(...)):
-    """Endpoint do walidacji pliku CSV"""
-    try:
-        content = await file.read()
-        csv_data = io.StringIO(content.decode('utf-8'))
-        df = pd.read_csv(csv_data)
-        
-        # Sprawdzanie struktury
-        required_columns = [
-            'src_ip', 'src_fqdn', 'src_port', 'protocol',
-            'dst_ip', 'dst_fqdn', 'dst_port', 'description'
-        ]
-        if not all(column in df.columns for column in required_columns):
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "status": "error",
-                    "message": "Nieprawidłowa struktura CSV. Brakujące kolumny."
-                }
-            )
-
-        # Sprawdzanie protokołów
-        valid_protocols = ['TCP', 'UDP', 'ICMP']
-        invalid_protocols = df[~df['protocol'].str.upper().isin(valid_protocols)]['protocol'].unique()
-        if len(invalid_protocols) > 0:
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "status": "error",
-                    "message": f"Nieprawidłowe protokoły: {', '.join(invalid_protocols)}"
-                }
-            )
-
-        return JSONResponse(
-            content={
-                "status": "success",
-                "message": "Plik CSV jest poprawny",
-                "rows_count": len(df)
-            }
-        )
-    except Exception as e:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "status": "error",
-                "message": f"Błąd podczas walidacji CSV: {str(e)}"
-            }
-        )
-
-def sanitize_client_name(client_name: str) -> str:
-    """Oczyszcza nazwę klienta z niedozwolonych znaków."""
-    logger.debug(f"Sanityzacja nazwy klienta: {client_name}")
-    # Zamiana spacji na podkreślenia i usunięcie niedozwolonych znaków
-    sanitized = re.sub(r'[^\w\s-]', '', client_name)
-    sanitized = sanitized.replace(' ', '_')
-    # Usuń podkreślenia z początku i końca
-    sanitized = sanitized.strip('_')
-    logger.debug(f"Nazwa po sanityzacji: {sanitized}")
-    return sanitized
-
-
-def create_zip_file(source_file: str, zip_filename: str, client_name: str) -> str:
-    """
-    Tworzy plik ZIP zawierający plik wykonywalny i dodatkowe informacje
-    """
-    zip_path = os.path.join("output", zip_filename)
-    
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        # Dodaj plik wykonywalny
-        zipf.write(source_file, os.path.basename(source_file))
-        
-        # Dodaj plik README z informacjami
-        readme_content = f"""Network Policy Checker
-Generated for: {client_name}
-Generation date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-
-Instructions:
-1. Extract the executable file
-2. Run the program to check network policies
-3. Review the results
-
-For support contact your system administrator.
-"""
-        zipf.writestr('README.txt', readme_content)
-    
-    return zip_path
+@app.get(f"/download/{file_id}")
+async def download_file(file_id: str):
+    """Endpoint do pobierania wygenerowanego pliku"""
+    file_path = os.path.join("output", file_id)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Plik nie został znaleziony")
+    return FileResponse(
+        file_path,
+        media_type='application/zip',
+        filename=file_id
+    )
 
 @app.post("/upload/")
 async def upload_policy(
@@ -211,16 +168,3 @@ async def upload_policy(
         # Czyszczenie plików tymczasowych
         if os.path.exists('temp'):
             shutil.rmtree('temp')
-
-# Poprawiony endpoint do pobierania
-@app.get(f"/download/{filename}")
-async def download_file(filename: str):
-    """Endpoint do pobierania wygenerowanego pliku"""
-    file_path = os.path.join("output", filename)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Plik nie został znaleziony")
-    return FileResponse(
-        file_path,
-        media_type='application/zip',
-        filename=filename
-    )
