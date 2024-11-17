@@ -13,8 +13,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     networks:
-      - app-network
+      - check_network_policies
+    privileged: true 
 
 networks:
-  app-network:
+  check_network_policies:
     driver: bridge

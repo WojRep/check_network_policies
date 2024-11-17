@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 # Instalacja dockera
 RUN apt-get update && \
-    apt-get install -y docker.io && \
+    apt-get install -y docker.io curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
