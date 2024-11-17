@@ -94,7 +94,7 @@ async def home(request: Request):
         logger.error(f"Błąd podczas renderowania strony głównej: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get(f"/download/{filename}")
+@app.get("/download/{filename}")
 async def download_file(filename: str):
     """Endpoint do pobierania wygenerowanego pliku"""
     file_path = os.path.join("output", filename)
