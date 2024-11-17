@@ -129,7 +129,7 @@ async def upload_policy(
         safe_client_name = sanitize_client_name(client_name)
 
         # Generowanie dla Windows
-        cmd_windows = 'docker run --privileged -v /app:/src  --network host --rm --entrypoint /bin/bash cdrx/pyinstaller-windows:python3 -c "python -m pip install --upgrade pip && /entrypoint.sh"'
+        cmd_windows = 'docker run -v /var/run/docker.sock:/var/run/docker.sock -v /app:/src:rshared --privileged  --network host --rm --entrypoint /bin/bash cdrx/pyinstaller-windows:python3 -c "python -m pip install --upgrade pip && /entrypoint.sh"'
         process_windows = subprocess.run(cmd_windows, shell=True, check=True, capture_output=True, text=True)
 
         # Sprawdzenie czy plik exe został wygenerowany
@@ -152,7 +152,7 @@ async def upload_policy(
         zip_path_windows = create_zip_file(output_exe_path_windows, zip_filename_windows, client_name, "Windows")
         
         # Generowanie dla Linux
-        cmd_linux = 'docker run --privileged -v /app:/src  --network host --rm cdrx/pyinstaller-linux:python3'
+        cmd_linux = 'docker run -v /var/run/docker.sock:/var/run/docker.sock -v /app:/src:rshared --privileged --network host --rm cdrx/pyinstaller-linux:python3'
         process_linux = subprocess.run(cmd_linux, shell=True, check=True, capture_output=True, text=True)
 
         # Sprawdzenie czy plik dla Linuxa został wygenerowany
