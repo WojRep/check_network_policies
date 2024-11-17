@@ -163,9 +163,7 @@ async def upload_policy(
         df.to_csv(csv_path, index=False)
 
         # Sanityzacja nazwy klienta
-        safe_client_name = re.sub(r'[^\w\s-]', '', client_name)
-        safe_client_name = safe_client_name.replace(' ', '_')
-        safe_client_name = safe_client_name.strip('_')
+        safe_client_name = sanitize_client_name(client_name)
 
         # Uruchomienie kontenera Docker
         cmd = 'docker run -v "$(pwd):/src/" --rm -it --entrypoint /bin/bash cdrx/pyinstaller-windows:python3 -c "python -m pip install --upgrade pip && /entrypoint.sh"'
@@ -194,11 +192,8 @@ async def upload_policy(
         # Usuń tymczasowy plik exe
         os.remove(output_exe_path)
         
-        return FileResponse(
-            zip_path,
-            media_type='application/zip',
-            filename=zip_filename
-        )
+        # Zwróć URL do pobrania pliku
+        return {"download_url": f"/files/{zip_filename}"}
 
     except Exception as e:
         logger.error(f"Błąd podczas przetwarzania: {str(e)}", exc_info=True)
@@ -208,4 +203,3 @@ async def upload_policy(
         # Czyszczenie plików tymczasowych
         if os.path.exists('temp'):
             shutil.rmtree('temp')
-
