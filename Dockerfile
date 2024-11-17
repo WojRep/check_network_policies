@@ -19,6 +19,7 @@ COPY client.py .
 COPY requirements.txt .
 
 # Instalacja zależności
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements-web.txt
 
 # Port na którym działa aplikacja
