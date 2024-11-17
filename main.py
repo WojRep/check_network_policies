@@ -152,7 +152,7 @@ async def upload_policy(
         zip_path_windows = create_zip_file(output_exe_path_windows, zip_filename_windows, client_name, "Windows")
         
         # Generowanie dla Linux
-        cmd_linux = 'docker run -v "$(pwd):/src/" --rm -it --entrypoint /bin/bash cdrx/pyinstaller-linux:python3 -c "python -m pip install --upgrade pip && /entrypoint.sh"'
+        cmd_linux = 'docker run -v "$(pwd):/src/" --rm cdrx/pyinstaller-linux:python3'
         process_linux = subprocess.run(cmd_linux, shell=True, check=True, capture_output=True, text=True)
 
         # Sprawdzenie czy plik dla Linuxa został wygenerowany
