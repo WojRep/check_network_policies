@@ -15,7 +15,11 @@ services:
     networks:
       - check_network_policies
     privileged: true 
-
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - SYS_ADMIN
+      
 networks:
   check_network_policies:
     driver: bridge
