@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Policy Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .requirements {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #4CAF50;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid red;
+            border-radius: 4px;
+            display: none;
+        }
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .time-elapsed {
+            color: #666;
+        }
+        .progress-message {
+            margin-top: 5px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .status-steps {
+            margin-top: 10px;
+        }
+        .status-step {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .status-step.pending {
+            background-color: #f8f9fa;
+            color: #666;
+        }
+        .status-step.in-progress {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-step.completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .pulsing {
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generator polityk sieciowych</h1>
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="client_name">Nazwa klienta:</label>
+                <input type="text" id="client_name" name="client_name" required>
+            </div>
+            <div class="form-group">
+                <label for="file">Plik CSV z politykami:</label>
+                <input type="file" id="file" name="file" accept=".csv" required>
+            </div>
+            <button type="submit" id="submitButton">Generuj program</button>
+        </form>
+        
+        <div id="error" class="error"></div>
+
+        <div id="progressContainer" class="progress-container">
+            <div class="progress-info">
+                <span id="progressPercentage">0%</span>
+                <span id="timeElapsed" class="time-elapsed">Czas: 0s</span>
+            </div>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div id="progressMessage" class="progress-message">Przygotowywanie...</div>
+            <div class="status-steps">
+                <div id="step1" class="status-step pending">1. Walidacja pliku CSV</div>
+                <div id="step2" class="status-step pending">2. Przygotowanie środowiska</div>
+                <div id="step3" class="status-step pending">3. Generowanie programu</div>
+                <div id="step4" class="status-step pending">4. Finalizacja</div>
+            </div>
+        </div>
+
+        <div class="requirements">
+            <h3>Wymagana struktura pliku CSV:</h3>
+            <ul>
+                <li>src_ip: Adres IP źródła</li>
+                <li>src_fqdn: Pełna nazwa domenowa źródła</li>
+                <li>src_port: Port źródłowy (lub zakres portów)</li>
+                <li>protocol: Protokół transmisji (TCP/UDP/ICMP)</li>
+                <li>dst_ip: Adres IP celu</li>
+                <li>dst_fqdn: Pełna nazwa domenowa celu</li>
+                <li>dst_port: Port docelowy</li>
+                <li>description: Opis połączenia</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let startTime;
+        let timerInterval;
+        
+        function updateTimeElapsed() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById('timeElapsed').textContent = `Czas: ${elapsed}s`;
+        }
+
+        function updateProgress(percentage, message) {
+            document.getElementById('progressFill').style.width = `${percentage}%`;
+            document.getElementById('progressPercentage').textContent = `${percentage}%`;
+            if (message) {
+                document.getElementById('progressMessage').textContent = message;
+            }
+        }
+
+        function updateStep(stepNumber, status) {
+            const step = document.getElementById(`step${stepNumber}`);
+            step.className = `status-step ${status}`;
+            if (status === 'in-progress') {
+                step.classList.add('pulsing');
+            } else {
+                step.classList.remove('pulsing');
+            }
+        }
+
+        async function validateCSV(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/validate-csv/', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Błąd walidacji CSV');
+            }
+
+            return await response.json();
+        }
+
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const submitButton = document.getElementById('submitButton');
+            const progressContainer = document.getElementById('progressContainer');
+            const errorDiv = document.getElementById('error');
+            const file = e.target.file.files[0];
+
+            submitButton.disabled = true;
+            errorDiv.style.display = 'none';
+            progressContainer.style.display = 'block';
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimeElapsed, 1000);
+
+            try {
+                // Krok 1: Walidacja CSV
+                updateProgress(5, "Rozpoczynam walidację pliku CSV...");
+                updateStep(1, 'in-progress');
+                
+                try {
+                    const validationResult = await validateCSV(file);
+                    updateProgress(20, `Plik CSV poprawny - znaleziono ${validationResult.rows_count} wierszy`);
+                    updateStep(1, 'completed');
+                } catch (error) {
+                    throw new Error(`Błąd walidacji: ${error.message}`);
+                }
+
+// Rozpoczęcie właściwego uploadu
+                updateProgress(30, "Przesyłanie pliku...");
+                updateStep(2, 'in-progress');
+                
+                const response = await fetch('/upload/', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Wystąpił błąd podczas przesyłania pliku');
+                }
+
+                updateStep(2, 'completed');
+                
+                // Krok 3: Generowanie programu
+                updateProgress(60, "Generowanie programu...");
+                updateStep(3, 'in-progress');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                updateStep(3, 'completed');
+
+                // Krok 4: Finalizacja
+                updateProgress(90, "Finalizacja...");
+                updateStep(4, 'in-progress');
+                
+                // Pobieranie pliku
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = response.headers.get('content-disposition')?.split('filename=')[1] || 'generated.exe';
+                
+                updateStep(4, 'completed');
+                updateProgress(100, "Zakończono! Pobieranie pliku...");
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                // Resetowanie formularza po 2 sekundach
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                    submitButton.disabled = false;
+                    updateProgress(0, "");
+                    for (let i = 1; i <= 4; i++) {
+                        updateStep(i, 'pending');
+                    }
+                }, 2000);
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                progressContainer.style.display = 'none';
+                submitButton.disabled = false;
+                for (let i = 1; i <= 4; i++) {
+                    updateStep(i, 'pending');
+                }
+            } finally {
+                clearInterval(timerInterval);
+            }
+        };
+    </script>
+</body>
+</html>
+
