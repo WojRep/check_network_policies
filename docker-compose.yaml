@@ -9,7 +9,7 @@ services:
     ports:
       - "8945:8945"
     volumes:
-      - .:/src:rshared
+      - ./src:/src:rshared
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PYTHONUNBUFFERED=1

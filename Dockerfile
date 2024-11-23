@@ -10,13 +10,13 @@ RUN apt-get update && \
 WORKDIR /src
 
 # Kopiowanie plików projektu
-COPY requirements-web.txt .
-COPY main.py .
-COPY templates/ templates/
+COPY ./web/requirements-web.txt .
+COPY ./web/main.py .
+COPY ./web/templates/ templates/
 
-COPY client_x86.spec .
-COPY client.py .
-COPY requirements.txt .
+COPY ./src/client_x86.spec .
+COPY ./src/client.py .
+COPY ./src/requirements.txt .
 
 # Instalacja zależności
 RUN pip install --upgrade pip
