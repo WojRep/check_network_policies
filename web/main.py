@@ -1,12 +1,11 @@
-# app/main.py
+# main.py
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from .config import STATIC_DIR
-from .logging_config import setup_logging
-from .routes import file_routes
+import config
+import routes
 
-logger = setup_logging()
+logger = config.setup_logging()
 
 app = FastAPI()
 
@@ -19,8 +18,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static files
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
 # Include routers
-app.include_router(file_routes.router)
+app.include_router(routes.router)

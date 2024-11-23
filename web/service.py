@@ -1,14 +1,12 @@
-# app/services/file_service.py
+# service.py
 import pandas as pd
 import io
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
-from ..utils.sanitizer import sanitize_client_name
-from ..utils.zip_utils import create_zip_file
-from ..dependencies import templates
-from ..config import OUTPUT_DIR
-from .build_service import build_executables
+import utils
+from config import OUTPUT_DIR
 import os
+import routes
 
 async def process_upload_file(request, client_name, file):
     try:
@@ -22,7 +20,7 @@ async def process_upload_file(request, client_name, file):
         df.to_csv(csv_path, index=False)
         
         # Sanitize client name
-        safe_client_name = sanitize_client_name(client_name)
+        safe_client_name = utils.sanitize_client_name(client_name)
         
         # Build executables
         windows_path, linux_path = build_executables(safe_client_name)
@@ -31,10 +29,10 @@ async def process_upload_file(request, client_name, file):
         zip_filename_windows = f"check_network_policies_{safe_client_name}_windows.zip"
         zip_filename_linux = f"check_network_policies_{safe_client_name}_linux.zip"
         
-        zip_path_windows = create_zip_file(windows_path, zip_filename_windows, client_name, "Windows")
-        zip_path_linux = create_zip_file(linux_path, zip_filename_linux, client_name, "Linux")
+        zip_path_windows = utils.create_zip_file(windows_path, zip_filename_windows, client_name, "Windows")
+        zip_path_linux = utils.create_zip_file(linux_path, zip_filename_linux, client_name, "Linux")
         
-        return templates.TemplateResponse(
+        return routes.templates.TemplateResponse(
             "upload.html",
             {
                 "request": request,

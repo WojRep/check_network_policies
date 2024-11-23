@@ -1,18 +1,20 @@
-# app/routes/file_routes.py
+# routes.py
 from fastapi import APIRouter, Request, UploadFile, HTTPException, Form, File
 from fastapi.responses import FileResponse, HTMLResponse
-from ..dependencies import templates
-from ..services.file_service import process_upload_file
-from ..logging_config import setup_logging
+
+import service
+import config
 
 router = APIRouter()
-logger = setup_logging()
+logger = config.setup_logging()
+
+
 
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     try:
         logger.info("Próba wyświetlenia strony głównej")
-        return templates.TemplateResponse("upload.html", {"request": request})
+        return config.templates.TemplateResponse("upload.html", {"request": request})
     except Exception as e:
         logger.error(f"Błąd podczas renderowania strony głównej: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

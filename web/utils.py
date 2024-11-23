@@ -1,4 +1,4 @@
-# app/utils/sanitizer.py
+# utils.py
 import re
 import logging
 
@@ -13,11 +13,11 @@ def sanitize_client_name(client_name: str) -> str:
     logger.debug(f"Nazwa po sanityzacji: {sanitized}")
     return sanitized
 
-# app/utils/zip_utils.py
+
 import os
 import zipfile
 from datetime import datetime
-from ..config import OUTPUT_DIR
+from config import OUTPUT_DIR
 
 def create_zip_file(source_file: str, zip_filename: str, client_name: str, os_type: str) -> str:
     """
