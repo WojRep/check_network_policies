@@ -67,8 +67,12 @@ def is_port_in_use(port, protocol='tcp'):
 def parse_port_range(port_spec):
     """
     Parsuje specyfikację portu, zwraca listę portów
-    Dodane sprawdzanie poprawności zakresu
+    Obsługuje specjalne wartości '*', 'none', 'null' oraz zakres portów
     """
+    # Sprawdź czy to specjalna wartość
+    if port_spec in ['*', 'none', 'null'] or not port_spec.strip():
+        return ['*']  # Zwracamy specjalną wartość jako listę jednopozycyjną
+        
     try:
         if '-' in port_spec:
             start, end = map(int, port_spec.split('-'))
@@ -83,6 +87,8 @@ def parse_port_range(port_spec):
                 raise ValueError(f"Port musi być w zakresie 0-65535 (podano {port})")
             return [port]
     except ValueError as e:
+        if str(e).startswith("invalid literal for int()"):
+            raise ValueError(f"Nieprawidłowa wartość portu '{port_spec}'. Dozwolone są liczby 0-65535, zakresy (np. '80-90') lub '*'")
         raise ValueError(f"Nieprawidłowa specyfikacja portu '{port_spec}': {str(e)}")
 
 @contextmanager

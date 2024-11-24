@@ -61,6 +61,12 @@ def start_server(port, protocol):
     """
     logger = logging.getLogger('NetworkPolicyServer')
     
+    # Explicite sprawdzenie protokołu
+    protocol = protocol.lower()
+    if protocol not in ['tcp', 'udp']:
+        logger.error(f"Protokół {protocol} nie jest obsługiwany. Dozwolone tylko TCP i UDP.")
+        return None
+    
     # Sprawdź uprawnienia i dostępność portu przed uruchomieniem wątku
     port_in_use, error_msg = is_port_in_use(port, protocol)
     if port_in_use:
@@ -72,10 +78,13 @@ def start_server(port, protocol):
         logger.error(f"{permission_error}")
         return None
 
-    if protocol.lower() == 'tcp':
+    if protocol == 'tcp':
         thread = threading.Thread(target=handle_tcp_connection, args=(port,))
-    else:
+    elif protocol == 'udp':
         thread = threading.Thread(target=handle_udp_connection, args=(port,))
+    else:
+        logger.error(f"Nieobsługiwany protokół: {protocol}")
+        return None
     
     thread.daemon = True
     thread.start()

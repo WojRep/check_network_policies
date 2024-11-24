@@ -104,8 +104,14 @@ def main():
             ports = parse_port_range(entry['dst_port'])
             protocol = entry['protocol'].lower()
             
+            # Explicite sprawdzenie i odrzucenie ICMP
+            if protocol == 'icmp':
+                logger.warning(f"Protokół ICMP nie jest obsługiwany - wpis ignorowany")
+                continue
+            
+            # Sprawdzenie czy protokół jest obsługiwany
             if protocol not in ['tcp', 'udp']:
-                logger.warning(f"Nieobsługiwany protokół: {protocol}")
+                logger.warning(f"Nieobsługiwany protokół: {protocol}. Dozwolone tylko TCP i UDP.")
                 continue
             
             for port in ports:

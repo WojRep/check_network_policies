@@ -74,7 +74,21 @@ def is_matching_entry(entry, local_ips, local_fqdn):
         # Logujemy to jako informację debugową, ale nie odrzucamy wpisu
         logger.debug(f"Ostrzeżenie: Niezgodne FQDN: {entry['dst_fqdn']} != {local_fqdn}")
     
-    # Jeśli mamy dopasowanie IP, sprawdzamy uprawnienia dla portów
+    # Specjalne traktowanie portów dla ICMP
+    if entry['protocol'].lower() == 'icmp':
+        # Dla ICMP porty mogą być *, none lub puste
+        valid_port_values = ['*', 'none', 'null', '']
+        if entry['dst_port'] not in valid_port_values and not entry['dst_port'].strip() == '':
+            logger.error(f"Dla protokołu ICMP port docelowy musi być '*', 'none' lub pusty. Otrzymano: {entry['dst_port']}")
+            return False
+        if 'src_port' in entry and entry['src_port'] not in valid_port_values and not entry['src_port'].strip() == '':
+            logger.error(f"Dla protokołu ICMP port źródłowy musi być '*', 'none' lub pusty. Otrzymano: {entry['src_port']}")
+            return False
+        # Dla ICMP nie sprawdzamy uprawnień portów
+        logger.debug(f"Zaakceptowano wpis ICMP dla IP: {entry['dst_ip']}")
+        return True
+    
+    # Dla innych protokołów standardowe sprawdzanie portów
     try:
         ports = parse_port_range(entry['dst_port'])
         for port in ports:
