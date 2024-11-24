@@ -97,8 +97,8 @@ async def process_upload_file(request, client_name, file):
         # Budowanie plików wykonywalnych
         try:
             logger.info("Rozpoczęto budowanie plików wykonywalnych")
-            windows_path, linux_path = build_executables(safe_client_name)
-            logger.info(f"Pomyślnie zbudowano pliki wykonywalne: Windows: {windows_path}, Linux: {linux_path}")
+            windows_client_path, windows_server_path, linux_client_path, linux_server_path = build_executables(safe_client_name)
+            logger.info(f"Pomyślnie zbudowano pliki wykonywalne: Windows: {windows_client_path}, {windows_server_path}, Linux: {linux_client_path}, {linux_server_path}.")
         except Exception as e:
             logger.error(f"Błąd podczas budowania plików wykonywalnych: {str(e)}")
             raise HTTPException(status_code=500, detail="Błąd podczas generowania plików wykonywalnych")
@@ -107,9 +107,29 @@ async def process_upload_file(request, client_name, file):
         try:
             zip_filename_windows = f"check_network_policies_{safe_client_name}_windows.zip"
             zip_filename_linux = f"check_network_policies_{safe_client_name}_linux.zip"
+                    
+            windows_files = {
+                'client': windows_client_path,
+                'server': windows_server_path
+            }
+            zip_path_windows = utils.create_zip_file(
+                files=windows_files,
+                zip_filename=zip_filename_windows,
+                client_name=client_name,
+                os_type="Windows"
+            )
             
-            zip_path_windows = utils.create_zip_file(windows_path, zip_filename_windows, client_name, "Windows")
-            zip_path_linux = utils.create_zip_file(linux_path, zip_filename_linux, client_name, "Linux")
+            # Create Linux ZIP with both client and server files
+            linux_files = {
+                'client': linux_client_path,
+                'server': linux_server_path
+            }
+            zip_path_linux = utils.create_zip_file(
+                files=linux_files,
+                zip_filename=zip_filename_linux,
+                client_name=client_name,
+                os_type="Linux"
+            )
             
             logger.info(f"Utworzono pliki ZIP: {zip_path_windows}, {zip_path_linux}")
         except Exception as e:

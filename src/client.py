@@ -182,24 +182,37 @@ def load_client_data(csv_file):
 def should_test_connection(entry, local_ips, local_fqdn):
     """
     Sprawdza czy dany wpis powinien być testowany na podstawie lokalnego IP i FQDN.
-    Obsługuje wildcard '*' w src_ip i src_fqdn.
+    Obsługuje wildcard '*', pustą wartość i 'none' w src_ip i src_fqdn.
     """
     logger = logging.getLogger('NetworkTester')
     
-    # Jeśli którekolwiek pole ma '*', to reguła pasuje
-    if entry["src_ip"] == "*" or entry["src_fqdn"] == "*":
-        logger.debug(f"Znaleziono wildcard '*' w regule - src_ip: {entry['src_ip']}, src_fqdn: {entry['src_fqdn']}")
+    # Normalizacja wartości src_ip i src_fqdn
+    src_ip = str(entry.get("src_ip", "")).strip().lower()
+    src_fqdn = str(entry.get("src_fqdn", "")).strip().lower()
+    
+    # Lista wartości traktowanych jako wildcard
+    wildcard_values = ["*", "", "none", "null", None]
+    
+    # Sprawdzanie czy którekolwiek pole jest wildcardem
+    is_ip_wildcard = src_ip in wildcard_values
+    is_fqdn_wildcard = src_fqdn in wildcard_values
+    
+    if is_ip_wildcard or is_fqdn_wildcard:
+        if is_ip_wildcard:
+            logger.debug(f"Znaleziono wildcard w src_ip: '{src_ip}'")
+        if is_fqdn_wildcard:
+            logger.debug(f"Znaleziono wildcard w src_fqdn: '{src_fqdn}'")
         return True
     
     # Sprawdzanie dokładnego dopasowania IP
-    is_matching_ip = entry["src_ip"] in local_ips
+    is_matching_ip = src_ip in local_ips
     # Sprawdzanie dokładnego dopasowania FQDN (bez uwzględniania wielkości liter)
-    is_matching_fqdn = entry["src_fqdn"].lower() == local_fqdn.lower()
+    is_matching_fqdn = src_fqdn == local_fqdn.lower()
     
     if is_matching_ip:
-        logger.debug(f"Dopasowano IP: {entry['src_ip']}")
+        logger.debug(f"Dopasowano IP: {src_ip}")
     if is_matching_fqdn:
-        logger.debug(f"Dopasowano FQDN: {entry['src_fqdn']}")
+        logger.debug(f"Dopasowano FQDN: {src_fqdn}")
     
     return is_matching_ip or is_matching_fqdn
 
@@ -213,11 +226,11 @@ def test_tcp_connection(ip, port, timeout=5):
             logger.debug(f"Nawiązano połączenie TCP z {ip}:{port}")
             return True, None
     except Exception as e:
-        return False, str(e)
+        return False, f"NOK -> {str(e)}"
 
-def test_udp_connection(ip, port, timeout=5):
+def test_udp_connection(ip, port, timeout=1):
     """
-    Testuje połączenie UDP
+    Testuje połączenie UDP wysyłając PING i oczekując na PONG
     """
     logger = logging.getLogger('NetworkTester')
     try:
@@ -226,18 +239,21 @@ def test_udp_connection(ip, port, timeout=5):
         sock.settimeout(timeout)
         
         # Próba wysłania danych
+        logger.debug(f"Wysyłanie PING UDP do {ip}:{port}")
         sock.sendto(b"PING", (ip, int(port)))
-        logger.debug(f"Wysłano datagram UDP do {ip}:{port}")
         
-        # Próba odebrania odpowiedzi (opcjonalne)
+        # Oczekiwanie na odpowiedź PONG
         try:
-            sock.recvfrom(1024)
-            logger.debug(f"Otrzymano odpowiedź UDP od {ip}:{port}")
+            data, addr = sock.recvfrom(1024)
+            if data.strip() == b"PONG":
+                logger.debug(f"Otrzymano PONG od {ip}:{port}")
+                return True, None
+            else:
+                logger.debug(f"Otrzymano nieprawidłową odpowiedź od {ip}:{port}: {data}")
+                return False, "Otrzymano nieprawidłową odpowiedź"
         except socket.timeout:
-            # Brak odpowiedzi nie oznacza błędu dla UDP
-            logger.debug(f"Brak odpowiedzi UDP od {ip}:{port} (to normalne)")
-        
-        return True, None
+            logger.debug(f"Timeout podczas oczekiwania na PONG od {ip}:{port}")
+            return False, "NOK -> Brak odpowiedzi PONG w czasie 1 sekundy"
     except Exception as e:
         return False, str(e)
     finally:
@@ -261,6 +277,19 @@ def test_ping(ip):
     logger.debug(f"Wynik polecenia ping dla {ip}: {response}")
     
     return response == 0
+
+def parse_port_range(port_spec):
+    """
+    Parsuje specyfikację portu, zwraca listę portów
+    """
+    if '-' in port_spec:
+        start, end = map(int, port_spec.split('-'))
+        if start > end:
+            raise ValueError(f"Nieprawidłowy zakres portów: {start}-{end}")
+        return list(range(start, end + 1))
+    else:
+        return [int(port_spec)]
+
 
 def test_connections(client_data, local_ips, local_fqdn, debug=False):
     logger = logging.getLogger('NetworkTester')
@@ -301,7 +330,7 @@ def test_connections(client_data, local_ips, local_fqdn, debug=False):
             )
             logger.debug(ignored_msg)
             if debug:
-                print(f"\033[93m{ignored_msg}\033[0m")  # Żółty kolor dla ignorowanych
+                print(f"\033[93m{ignored_msg}\033[0m")
             continue
 
         # Testowanie połączenia
@@ -323,22 +352,26 @@ def test_connections(client_data, local_ips, local_fqdn, debug=False):
                 if entry["dst_port"] == "*":
                     raise ValueError("Nie można użyć '*' jako portu dla TCP/UDP.")
                 
-                logger.info(f"Testuję połączenie {protocol} z {entry['dst_ip']}:{entry['dst_port']}")
+                # Parsowanie zakresu portów
+                ports = parse_port_range(entry["dst_port"])
                 
-                if protocol == "TCP":
-                    success, error = test_tcp_connection(entry["dst_ip"], entry["dst_port"])
-                else:  # UDP
-                    success, error = test_udp_connection(entry["dst_ip"], entry["dst_port"])
-                
-                if success:
-                    results.append((entry["dst_ip"], entry["dst_port"], protocol, "SUCCESS"))
-                    logger.debug(f"SUCCESS: Połączenie {protocol} z {entry['dst_ip']}:{entry['dst_port']} udane")
-                    success_count += 1
-                else:
-                    error_msg = f"ERROR: {error}" if error else "FAILED"
-                    results.append((entry["dst_ip"], entry["dst_port"], protocol, error_msg))
-                    logger.debug(f"FAILED: Połączenie {protocol} z {entry['dst_ip']}:{entry['dst_port']} nieudane - {error}")
-                    failure_count += 1
+                for port in ports:
+                    logger.info(f"Testuję połączenie {protocol} z {entry['dst_ip']}:{port}")
+                    
+                    if protocol == "TCP":
+                        success, error = test_tcp_connection(entry["dst_ip"], port)
+                    else:  # UDP
+                        success, error = test_udp_connection(entry["dst_ip"], port)
+                    
+                    if success:
+                        results.append((entry["dst_ip"], str(port), protocol, "SUCCESS"))
+                        logger.debug(f"SUCCESS: Połączenie {protocol} z {entry['dst_ip']}:{port} udane")
+                        success_count += 1
+                    else:
+                        error_msg = f"ERROR: {error}" if error else "FAILED"
+                        results.append((entry["dst_ip"], str(port), protocol, error_msg))
+                        logger.debug(f"FAILED: Połączenie {protocol} z {entry['dst_ip']}:{port} nieudane - {error}")
+                        failure_count += 1
             
             else:
                 error_msg = f"ERROR: Nieobsługiwany protokół: {protocol}"
@@ -361,20 +394,34 @@ def test_connections(client_data, local_ips, local_fqdn, debug=False):
         "ignored_entries": ignored_entries
     }
 
+    
 def show_results(results, stats, debug=False):
     logger = logging.getLogger('NetworkTester')
-    logger.info("Wyniki testów:")
-    
+    logger.info("\n")
+    logger.info('######################################################')
+    logger.info("\n")    
+    logger.info("REZULTAT TESTU POŁACZEŃ:")
+    logger.info('------------------------')
+    logger.info("\n")   
     # Wyświetlamy tylko wyniki testów (bez ignorowanych)
     for ip, port, protocol, status in results:
         if status != "IGNORED":
-            status_msg = f"{ip}:{port} ({protocol}) -> {status}"
-            if "SUCCESS" in status:
-                logger.info(status_msg)
-            elif "FAILED" in status:
-                logger.error(status_msg)
+            # Formatowanie adresu zgodnie z protokołem
+            if protocol == "ICMP":
+                address = f"{ip}/ping"
             else:
-                logger.warning(status_msg)
+                # Dla TCP i UDP używamy formatu ip:port/protokół
+                protocol_suffix = protocol.lower()
+                address = f"{ip}:{port}/{protocol_suffix}"
+            
+            # Status do logu
+            if "SUCCESS" in status:
+                logger.info(f"{address} -> OK")
+            elif "FAILED" in status:
+                logger.error(f"{address} -> NOK")
+            else:  # ERROR cases
+                error_msg = status.replace("ERROR: ", "")
+                logger.error(f"{address} -> {error_msg}")
     
     logger.info("\nPODSUMOWANIE")
     if stats['dns_warnings']:
@@ -394,9 +441,13 @@ def show_results(results, stats, debug=False):
     if debug and stats['ignored_entries']:
         logger.debug("Zignorowane pozycje:")
         for entry in stats['ignored_entries']:
+            if entry['protocol'] == "ICMP":
+                address = f"{entry['ip']}/ping"
+            else:
+                protocol_suffix = entry['protocol'].lower()
+                address = f"{entry['ip']}:{entry['port']}/{protocol_suffix}"
             logger.debug(
-                f"- {entry['ip']}:{entry['port']} ({entry['protocol']}) "
-                f"[src_ip: {entry['src_ip']}, src_fqdn: {entry['src_fqdn']}]"
+                f"- {address} [src_ip: {entry['src_ip']}, src_fqdn: {entry['src_fqdn']}]"
             )
 
 if __name__ == "__main__":

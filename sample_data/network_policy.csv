@@ -1,10 +1,13 @@
 src_ip,src_fqdn,src_port,protocol,dst_ip,dst_fqdn,dst_port,description
 192.168.43.2,fre-34-ssd.dom.sd234.cust.com,*,tcp,80.252.0.145,www.gazeta.pl,443,Komunikacja HTTPS
-192.168.43.2,fre-34-ssd.dom.sd234.cust.com,*,tcp,18.191.48.14,fre-36.rsd.dom.sd234.cust.com,80,Komunikacja HTTP
-192.168.43.2,fre-34-ssd.dom.sd234.cust.com,5060,udp,18.191.48.14,fre-36.rsd.dom.sd234.cust.com,5060,Komunikacja VoIP
-192.168.43.2,fre-34-ssd.dom.sd234.cust.com,6000-8000,udp,18.191.48.14,fre-36.rsd.dom.sd234.cust.com,5999,Ruch UDP z losowym portem źródłowym
+192.168.43.2,fre-34-ssd.dom.sd234.cust.com,*,tcp,192.168.100.39,fre-36.rsd.dom.sd234.cust.com,80,Komunikacja HTTP
+192.168.100.39,WAZUH.net45.pl,5061,udp,192.168.100.39,WAZUH.net45.pl,5060,Komunikacja VoIP
+192.168.100.39,WAZUH.net45.pl,7000-7100,udp,192.168.100.39,WAZUH.net45.pl,6000-6100,Ruch UDP z losowym portem źródłowym
 192.168.43.2,fre-34-ssd.dom.sd234.cust.com,*,icmp,127.0.0.1,wrepinski-MacBook-Pro.local,*,Dozwolony ruch ICMP (ping)
 192.168.43.2,wrepinski-MacBook-Pro.local,*,icmp,8.8.8.8,dns.google,*,Dozwolony ruch ICMP (ping)
 192.168.50.239,fre-34-ssd.dom.sd234.cust.com,*,icmp,192.168.50.1,fre-36.rsd.dom.sd234.cust.com,*,Dozwolony ruch ICMP (ping)
 192.168.43.2,wrepinski-MacBook-Pro.local,*,tcp,212.77.98.9,www.wp.pl,443,Komunikacja HTTPS
 192.168.49.18,fre-34-ssd.dom.sd234.cust.com,*,tcp,192.168.50.1,fre-36.rsd.dom.sd234.cust.com,80,Komunikacja HTTP
+192.168.100.39,WAZUH.net45.pl,5061,udp,192.168.100.39,WAZUH.net45.pl,5062,Komunikacja VoIP
+192.168.100.39,WAZUH.net45.pl,5061,udp,192.168.100.39,WAZUH.net45.pl,5063,Komunikacja VoIP
+192.168.100.39,WAZUH.net45.pl,*,tcp,192.168.100.39,WAZUH.net45.pl,8080,Komunikacja VoIP
