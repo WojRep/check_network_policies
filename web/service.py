@@ -4,35 +4,121 @@ import io
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
 import utils
-from config import OUTPUT_DIR
+from config import OUTPUT_DIR, BASE_DIR
+from config import templates
 import os
 import routes
+import logging
+from build_binary import build_executables
+
+logger = logging.getLogger(__name__)
+
+async def validate_csv_structure(df: pd.DataFrame) -> bool:
+    """
+    Sprawdza poprawność struktury pliku CSV.
+    Zwraca True jeśli struktura jest prawidłowa, w przeciwnym razie rzuca wyjątek.
+    """
+    required_columns = ['src_ip', 'src_fqdn', 'src_port', 'protocol', 'dst_ip', 'dst_fqdn', 'dst_port']
+    
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        error_msg = f"Brakujące wymagane kolumny: {', '.join(missing_columns)}"
+        logger.error(f"Błąd walidacji struktury CSV: {error_msg}")
+        raise ValueError(error_msg)
+    
+    # Sprawdzanie czy są puste wartości
+    null_counts = df.isnull().sum()
+    if null_counts.any():
+        null_columns = [f"{col}: {count}" for col, count in null_counts.items() if count > 0]
+        error_msg = f"Znaleziono puste wartości w kolumnach: {', '.join(null_columns)}"
+        logger.warning(f"Ostrzeżenie podczas walidacji CSV: {error_msg}")
+    
+    logger.info("Pomyślnie zwalidowano strukturę CSV")
+    return True
+
 
 async def process_upload_file(request, client_name, file):
+    """
+    Przetwarza przesłany plik CSV i generuje pliki wykonywalne.
+    """
+    logger.info(f"Rozpoczęto przetwarzanie pliku dla klienta: {client_name}")
+    
     try:
-        # Read and validate CSV
-        content = await file.read()
-        csv_data = io.StringIO(content.decode('utf-8'))
-        df = pd.read_csv(csv_data)
+        # Walidacja nazwy klienta
+        if not client_name or len(client_name.strip()) == 0:
+            error_msg = "Nazwa klienta nie może być pusta"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+            
+        logger.debug(f"Rozpoczęto odczyt pliku: {file.filename}")
         
-        # Save CSV file
-        csv_path = os.path.join('/src', 'network_policy.csv')
-        df.to_csv(csv_path, index=False)
+        try:
+            content = await file.read()
+            logger.debug(f"Odczytano {len(content)} bajtów")
+        except Exception as e:
+            logger.error(f"Błąd podczas odczytu pliku: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Błąd odczytu pliku: {str(e)}")
+
+        try:
+            csv_data = io.StringIO(content.decode('utf-8'))
+        except UnicodeDecodeError as e:
+            logger.error(f"Błąd dekodowania pliku CSV: {str(e)}")
+            raise HTTPException(status_code=400, detail="Plik musi być zakodowany w UTF-8")
+
+        try:
+            df = pd.read_csv(csv_data)
+            logger.info(f"Wczytano CSV z {len(df)} wierszami i {len(df.columns)} kolumnami")
+        except pd.errors.EmptyDataError:
+            logger.error("Przesłano pusty plik CSV")
+            raise HTTPException(status_code=400, detail="Przesłany plik CSV jest pusty")
+        except pd.errors.ParserError as e:
+            logger.error(f"Błąd parsowania CSV: {str(e)}")
+            raise HTTPException(status_code=400, detail="Nieprawidłowy format pliku CSV")
+
+        # Walidacja struktury CSV
+        try:
+            await validate_csv_structure(df)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
         
-        # Sanitize client name
+        # Zapis CSV
+        csv_path = os.path.join(BASE_DIR, 'network_policy.csv')
+        try:
+            df.to_csv(csv_path, index=False)
+            logger.info(f"Zapisano plik CSV do {csv_path}")
+        except Exception as e:
+            logger.error(f"Błąd podczas zapisu CSV: {str(e)}")
+            raise HTTPException(status_code=500, detail="Nie udało się zapisać pliku CSV")
+
+        # Sanityzacja nazwy klienta
         safe_client_name = utils.sanitize_client_name(client_name)
-        
-        # Build executables
-        windows_path, linux_path = build_executables(safe_client_name)
-        
-        # Create ZIP files
-        zip_filename_windows = f"check_network_policies_{safe_client_name}_windows.zip"
-        zip_filename_linux = f"check_network_policies_{safe_client_name}_linux.zip"
-        
-        zip_path_windows = utils.create_zip_file(windows_path, zip_filename_windows, client_name, "Windows")
-        zip_path_linux = utils.create_zip_file(linux_path, zip_filename_linux, client_name, "Linux")
-        
-        return routes.templates.TemplateResponse(
+        logger.debug(f"Nazwa klienta po sanityzacji: {safe_client_name}")
+
+        # Budowanie plików wykonywalnych
+        try:
+            logger.info("Rozpoczęto budowanie plików wykonywalnych")
+            windows_path, linux_path = build_executables(safe_client_name)
+            logger.info(f"Pomyślnie zbudowano pliki wykonywalne: Windows: {windows_path}, Linux: {linux_path}")
+        except Exception as e:
+            logger.error(f"Błąd podczas budowania plików wykonywalnych: {str(e)}")
+            raise HTTPException(status_code=500, detail="Błąd podczas generowania plików wykonywalnych")
+
+        # Tworzenie plików ZIP
+        try:
+            zip_filename_windows = f"check_network_policies_{safe_client_name}_windows.zip"
+            zip_filename_linux = f"check_network_policies_{safe_client_name}_linux.zip"
+            
+            zip_path_windows = utils.create_zip_file(windows_path, zip_filename_windows, client_name, "Windows")
+            zip_path_linux = utils.create_zip_file(linux_path, zip_filename_linux, client_name, "Linux")
+            
+            logger.info(f"Utworzono pliki ZIP: {zip_path_windows}, {zip_path_linux}")
+        except Exception as e:
+            logger.error(f"Błąd podczas tworzenia plików ZIP: {str(e)}")
+            raise HTTPException(status_code=500, detail="Błąd podczas pakowania plików")
+
+        # Przygotowanie odpowiedzi
+        logger.info("Zakończono przetwarzanie pliku pomyślnie")
+        return templates.TemplateResponse(
             "upload.html",
             {
                 "request": request,
@@ -42,33 +128,20 @@ async def process_upload_file(request, client_name, file):
                 "filename_linux": zip_filename_linux
             }
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Nieoczekiwany błąd podczas przetwarzania pliku: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Wystąpił nieoczekiwany błąd: {str(e)}")
 
-# app/services/build_service.py
-import subprocess
-import os
-from fastapi import HTTPException
 
-def build_executables(safe_client_name):
-    try:
-        # Build Windows executable
-        cmd_windows = 'docker run -v /var/run/docker.sock:/var/run/docker.sock --volumes-from network_policies_container --privileged  --network host --rm --entrypoint /bin/bash cdrx/pyinstaller-windows:python3 -c "python -m pip install --upgrade pip && /entrypoint.sh"'
-        subprocess.run(cmd_windows, shell=True, check=True, capture_output=True, text=True)
-        
-        # Build Linux executable
-        cmd_linux = 'docker run -v /var/run/docker.sock:/var/run/docker.sock --volumes-from network_policies_container --privileged --network host --rm cdrx/pyinstaller-linux:python3'
-        subprocess.run(cmd_linux, shell=True, check=True, capture_output=True, text=True)
-        
-        # Verify and return paths
-        windows_path = os.path.join("dist", "windows", "client_x86.exe")
-        linux_path = os.path.join("dist", "linux", "client_x86")
-        
-        if not os.path.exists(windows_path) or not os.path.exists(linux_path):
-            raise HTTPException(status_code=500, detail="Błąd podczas generowania plików wykonywalnych")
-            
-        return windows_path, linux_path
-        
-    except subprocess.CalledProcessError as e:
-        raise HTTPException(status_code=500, detail=f"Błąd podczas budowania: {str(e)}")
-    
+async def process_download_file(filename: str):
+    """Endpoint do pobierania wygenerowanego pliku"""
+    file_path = os.path.join("output", filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Plik nie został znaleziony")
+    return FileResponse(
+        file_path,
+        media_type='application/zip',
+        filename=filename
+    )

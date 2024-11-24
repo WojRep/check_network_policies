@@ -1,7 +1,8 @@
 # config.py
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BUILD_BASE_DIR = "/src"
+BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
 OUTPUT_DIR = BASE_DIR / "output"
 STATIC_DIR = BASE_DIR / "static"

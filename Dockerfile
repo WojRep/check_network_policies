@@ -6,24 +6,28 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+
 # Ustawienie katalogu roboczego
-WORKDIR /src
+WORKDIR /web
 
-# Kopiowanie plików projektu
-COPY web/requirements-web.txt .
-COPY web/*.py .
-COPY web/templates/ templates/
-
-COPY src/client_x86.spec .
-COPY src/client.py .
-COPY src/requirements.txt .
-
-# Instalacja zależności
+# Aktualizacja pip
 RUN pip install --upgrade pip
+
+# Instalowanie zależności
+COPY web/requirements-web.txt .
 RUN pip install --no-cache-dir -r requirements-web.txt
 
-# Port na którym działa aplikacja
+# Kopiowanie plików projektu WEB
+COPY web/main.py .
+COPY web/config.py .
+COPY web/utils.py .
+COPY web/build_binary.py .
+COPY web/service.py .
+COPY web/routes.py .
+COPY web/templates/ templates/
+
 EXPOSE 8945
 
-# Uruchomienie aplikacji
+
+
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8945"]

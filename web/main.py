@@ -7,6 +7,8 @@ import routes
 
 logger = config.setup_logging()
 
+logger.info(f"BASE_DIR: {config.BASE_DIR}")
+
 app = FastAPI()
 
 # CORS configuration
