@@ -56,6 +56,21 @@ def get_resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 def main():
+
+    # Obsługa sygnału CTRL+C
+    class ServerState:
+        def __init__(self):
+            self.running = True
+    
+    state = ServerState()
+
+    def signal_handler(signum, frame):
+        state.running = False
+        logger.info("\nOtrzymano sygnał zatrzymania: CTRL+C.")
+        logger.info("\nZatrzymywanie serwera...")
+
+
+
     # Sprawdź uprawnienia przy starcie
     is_admin = False
     if platform.system() == "Windows":
@@ -122,22 +137,25 @@ def main():
         
         except Exception as e:
             logger.error(f"Błąd podczas konfiguracji portu: {e}")
-    
-    # Obsługa sygnału CTRL+C
-    def signal_handler(signum, frame):
-        logger.info("\nZatrzymywanie serwera...")
-        sys.exit(0)
-    
+
+    # Rejestracja obsługi sygnałów
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
-    # Utrzymuj program uruchomiony
     logger.info("Serwer uruchomiony. Naciśnij CTRL+C aby zakończyć.")
-    while True:
-        try:
-            signal.pause()
-        except (KeyboardInterrupt, SystemExit):
-            break
+    try:
+        import time
+        while state.running:
+            time.sleep(0.1)  # Krótszy interwał dla lepszej responsywności
+    except Exception as e:
+        logger.error(f"Nieoczekiwany błąd: {e}")
+    finally:
+        # Zamykanie wątków
+        logger.info("Zamykanie aktywnych połączeń...")
+        for thread in active_threads:
+            if thread and thread.is_alive():
+                thread.join(timeout=1.0)
+        logger.info("Serwer zatrzymany.")
 
 if __name__ == "__main__":
     main()
