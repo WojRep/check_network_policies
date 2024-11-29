@@ -41,7 +41,7 @@ def build_windows(safe_client_name):
         # Przygotowanie nazw plików dla Windows
         output_client_filename_windows = f"check_network_policies_{safe_client_name}.exe"
         output_exe_client_path_windows = os.path.join("output", output_client_filename_windows)
-        output_server_filename_windows = f"check_network_policies_{safe_client_name}.exe"
+        output_server_filename_windows = f"server_check_network_policies_{safe_sclient_name}.exe"
         output_exe_server_path_windows = os.path.join("output", output_server_filename_windows)
         
         try:
